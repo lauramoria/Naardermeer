@@ -1,0 +1,295 @@
+---
+title: "Ecologische waterkwaliteit Naardermeer"
+output:
+  bookdown::html_document2:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  pdf_document: default
+  word_document: default
+---
+```{r global, include = FALSE}
+#  Settings-------------------------------------------------------
+rm(list=ls())                               #maakt geheugen leeg voor aanvang
+options(repos="https://cran.rstudio.com" )
+
+#  Directories and names------------------------------------------
+dirwaterkwaliteit <- "WQ"    
+dirGIS <-"input/GIS"
+dirFiguren <- "output/"
+
+# Load packages and functions-------------------------------------
+source('scripts/loadPackages.R')
+source('scripts/postProces.R')
+source('scripts/createOutput.R')
+source('scripts/PolarBarchart.R')
+
+packages(kableExtra)
+packages(knitr)
+
+# other settings
+col <- c('3'="blue",'4'="green",'5'="yellow",'6'="orange",'7'="red", '1' = "grey")
+labels <- c('3'="0.8-1",'4'="0.6-0.8",'5'="0.4-0.6",'6'="0.2-0.4",'7'="0-0.2", '1'= "niet bemonsterd")
+proj4.rd <- CRS("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.4171,50.3319,465.5524,-0.398957,0.343988,-1.87740,4.0725 +units=m +no_defs")
+proj4.google <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+```
+
+Aanleiding
+=======================================================================
+
+Het Naardermeer is het oudste natuurgebied van Nederland en is van grote ecologische waarde, zowel binnen Nederland als daarbuiten. Waterschap Amstel, Gooi en Vecht (AGV) staat als waterbeheerder aan de lat om de kwaliteit van het oppervlaktewater in het Naardermeer te behouden en te verbeteren. 
+
+```{r data, include = FALSE}
+# load input------------------------------------------------------
+EKRset <- readRDS('hydrobiologie/EKRset.rds')
+EKRset <- EKRset[EKRset$HoortBijGeoobject.identificatie %in% c('NL11_Naardermeer', 'Naardermeer'),]
+wq  <- read.csv("WQ/Fychem19772018.csv", header = TRUE, na.strings = " ", sep=";", dec =".", 
+                 stringsAsFactors = F)
+convertDatumFEWS(wq)
+bod  <- read.csv("waterbodem/bodemfews.csv", header = TRUE, na.strings = " ", sep=";", dec =".", 
+                 stringsAsFactors = F)
+hybi <- read.csv("hydrobiologie/bio_naardermeer.csv", header = TRUE, na.strings = " ", sep=";", dec =".", 
+                 stringsAsFactors = F)
+hybi$datum <- as.Date(hybi$datum, format = "%Y-%m-%d %H:%M")
+hybi$jaar <- format(hybi$datum, '%Y')
+hybi$meetwaarde[hybi$limietsymbool == '<'] <- hybi$meetwaarde[hybi$limietsymbool == '<']/2 # meetwaarden detectiegrens/ halve detectiegrens meenemen
+  
+```
+
+Samenvattende conclusies
+=======================================================================
+
+Het Naardermeer is het oudste natuurgebied van Nederland en is van grote ecologische waarde, zowel binnen Nederland als daarbuiten. Waterschap Amstel, Gooi en Vecht (AGV) staat als waterbeheerder aan de lat om de kwaliteit van het oppervlaktewater in het Naardermeer te behouden en te verbeteren. De huidige ecologische toestand van het oppervlaktewater in het Naardermeer is onvoldoende, maar verbetert de afgelopen jaren. Alleen vis scoort onvoldoende op de KRW maatlat, maar de score op de maatlat laat een positieve trend zien tussen 2008 en 2013. De slechte score op de vissenmaatlat wordt voornamelijk veroorzaakt door de relatief hoge biomassa brasem en deze neemt af. Mogelijk is de hoge biomassa brasem een relict uit het verleden. In de jaren 80 was het meer veel voedselrijker en vormde daarmee een geschikte leefomgeving voor brasem. Brasem kan wel 30 jaar oud worden en verdwijnt daarom langzaam uit het meer na een omslag van een troebele plas, met een slechte ecologische toestand, naar heldere plas met een goed ecologische toestand.
+
+```{r overzicht EKR, echo = FALSE, out.width="100%"}
+# hier overzichtstabel ekr scores en doelen
+# NaN verwijderen en doelen toevoegen
+
+dcast(EKRset[EKRset$HoortBijGeoobject.identificatie == 'Naardermeer' & EKRset$level == 1, c('GHPR','jaar','Numeriekewaarde','Identificatie')], Identificatie+GHPR~ jaar, value.var = "Numeriekewaarde", fun.aggregate = mean, drop = TRUE) %>%
+  kable(escape = F,align = 'c',caption = 'EKR scores op de KRW maatlatten voor biologie') %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), position = "float_left")
+  
+```
+
+De actuele toestand in het Naardermeer is niet overal stabiel en verschilt tussen de verschillende deelgebieden in het meer. 
+In de Bovenste blik is de toestand minder goed dan in de rest van het meer en in het gehele meer scoort de vegetatie minder goed in de laatste twee meetjaren (2016 en 2017). Hier woekeren waterplanten en bloeien regelmatig algen. In onderstaand figuur staat de huidige toestand in de Bovenste blik van het Naardermeer rechts verbeeld. Deze plas is van mindere ecologische kwaliteit dan de andere wateren in het Naardermeer. In deze plas staan minder (verschillende) waterplanten en hier bloeien regelmatig algen. De toestand van de Bovenste blik verschilt per jaar en varieert tussen een algen gedomineerd systeem zonder planten en een systeem met woekerende waterplanten.
+
+In onderstaande afbeelding staat de gewenste toestand (KRW en N2000 doel) links verbeeld en de toestand in de Bovenste blik rechts.
+
+```{r, echo = FALSE, out.width="50%"}
+myimages<-list.files("www/", pattern = "toestand.png", full.names = TRUE)
+include_graphics(myimages)
+```
+
+```{r overzicht ESF, echo = FALSE, out.width="100%"}
+# hier overzichtstabel esfen
+```
+Het Naardermeer is ondiep en daarom winnen de planten van de algen in hun competitie om licht. De waterbodem in het Naardermeer is voedselrijk. Deze heeft het vermogen om fosfor na te leveren bij zuurstofloze omstandigheden. De Bovenste Blik, Veertigmorgen en de lijnvormige wateren van het Naardermeer worden regelmatig zuurstofloos in de zomer. In het Noordelijk gedeelte van het Naarderemeer is bicarbonaat te laag in de zomer, waardoor de groei (fotosynthese) van onderwaterplanten wordt geremd. Belangrijk bronnen van bicarbonaat zijn uitspoeling uit percelen en in mindere mate inlaatwater uit de Vecht. De Bovenste blik is te hoog belast met voedingstoffen uit de Meerlanden en waterbodem. Mogelijk zijn Aalscholvers hier een risico.
+
+Het is niet goed te kwantificeren wat het flexibele peil exact voor invloed heeft op nutrientenbelasting uit percelen. Mogelijk leidt de extra kwel, die wordt voorspeld bij het omhoogzetten van de peilen in de bufferzone en het Naardermeer, tot verhoogde grondwaterstadnen in percelen. Hoewel de terrestrische natuur gebaat is bij hoge grondwaterstanden, kan de hoeveelheid uitspoeling van fosfor en koolstof hierdoor toe nemen. Uitspoeling wordt echter ook beinvloed door de dynamiek in oppervlaktewater en grondwaterstanden. Een plotselinge peilverlaging door het uitmalen van water leidt tot verhoogde concentraties nutrienten en zwavel in het water (flexpeil). Het operationeel beheer heeft daarmee veel invloed op de waterkwaliteit in het Naardermeer. 
+
+Methoden
+=======================================================================
+Van elk gebied wordt eerst de toestand beschreven, waarna per ESF een analyse wordt uitgevoerd. Hierbij staat de verklaring van de toestand aan de hand van de voorwaarden en het systeemfunctioneren centraal. In aanvulling hierop worden de effecten van toekomstige beheerscenario’s (flexibel peil / veranderen van in- en uitlaat) beschreven.
+
+### Toestand biologie
+In dit document wordt de toestand beschreven als KRW toetsresultaten die zijn berekend met de aquo-kit. De resulaten zijn samengevoegd en gevisualiseerd als figuren en tabellen. Alle beschikbare meetgegevens van hydrobiologische kwaliteitselementen zijn getoetst aan landelijke beoordelingsmethodiek voor sloten, kanalen (Omschrijving MEP en maatlatten voor sloten en kanalen, STOWA rapport 2012-34) en meren (Referenties en maatlatten voor natuurlijke watertypen voor de Kaderrichtlijn Water, STOWA rapport 2012-31). Het resultaat hiervan is een duiding van ecologische kwaliteit (EKR score). 
+
+Een score tussen 1 staat voor een maximaal haalbare ecologische kwaliteit in water dat niet door menselijk toedoen wordt verstoord. Een score van 0.6 staat voor een haalbare ecologische kwaliteit in water dat door de mens is gemaakt bij het winnen van turf en zand. Of water dat wordt gebruikt om in te varen of als afvoer om het land en de straat droog te houden. 
+
+De wijze waarop gegevens zijn verzameld en getoest staat beschreven in 'uitgangspunten toetsing en bepalen watertypen'.
+
+### ESF-en
+Om realistische doelen en maatregelen in beeld te brengen is inzicht nodig in de factoren die de ontwikkelingen in de huidige ecologische toestand bepalen. Dit kan met behulp van Ecologische sleutelfactoren op een gestructureerde, eenduidige en navolgbare wijze. Het doel van de systeemanalyse aan de hand van sleutelfactoren is om te begrijpen waardoor de ecologische toestand, die we in het veld waarnemen, veroorzaakt wordt (STOWA 2015). 
+
+Het raamwerk van de Ecologische Sleutelfactoren (ESF`s) helpt om inzicht te krijgen in het ecologisch functioneren van een watersysteem en bieden een kapstok voor het uitvoeren van een gestructureerde watersysteemanalyse (STOWA 2014; Schep & Verbeek 2018). De methodiek bestaat uit acht ecologische sleutelfactoren (afbeelding 2.1); iedere sleutelfactor beschrijft een voorwaarde voor een goede kwaliteit. Hierbij geldt een toestand met helder plantenrijk water met een hoge biodiversiteit als streefbeeld.
+
+Voor een goede waterkwaliteit, wat gekenmerkt wordt door helder water en een hoge biodiversiteit, is het allereerst noodzakelijk dat ondergedoken waterplanten tot ontwikkeling kunnen komen. Dit is waar de eerste 3 sleutelfactoren over gaan. Het belangrijkste is dat de externe nutriëntenbelasting niet dusdanig hoog is dat algen of kroos dominant worden (ESF1), ten tweede dat er geen andere factoren zijn die het lichtklimaat negatief beïnvloeden, zoals veel kleideeltjes of humuszuren (ESF2) en ten derde is het voor de ontwikkeling van een soortenrijke submerse vegetatie van belang dat de bodem niet teveel nutriënten bevat (ESF3). De ecologische sleutelfactoren 4, 5 en 6 zijn bepalend voor de aanwezigheid van specifieke soorten of levensgemeenschappen. ESF7 en 8 zijn alleen belangrijk in specifieke situaties. Ten slotte is ESF9 eigenlijk geen echte ecologische sleutelfactor, maar deze ESF gaat over de belangenafweging op een hoger niveau. Dit is geen onderdeel van deze waterkwaliteitsanalyse.
+
+Hieronder staan de tools die zijn gebruikt bij het maken van de analyses en visualisaties: 
+* aquo-kit, 
+* R, 
+* leaflet, 
+* plotly, 
+* water en stoffenbalans, 
+* PClake, 
+* fetchtool HHNK.
+
+Gebruikte uitgangspunten en parameters bij de analyses zijn per analysestap en tool beschreven in de bijlagen.
+
+
+Toestand hydrobiologie
+=======================================================================
+## KRW
+Het Naardermeer is getypeerd als ondiepe (matig grote) gebufferde plas (M14) en heeft als enige waterlichaam binnen het beheergebied van het waterschap AGV de status “natuurlijk”, omdat het niet sterk is veranderd door menselijk ingrijpen. Daardoor gelden voor het Naardermeer hoge ecologische doelen. Het Naardermeer scoort in de toetsing van 2018 “goed” voor fytoplankton, macrofauna en overige waterflora en “ontoereikend” voor vis. De visstand vertoont wel tekenen van herstel, maar scoort in het laatste meetjaar nog net niet voldoende.
+
+In de Bovenste blik wisselen verschillende ecologische toestanden (en bijbehorende scores op de maatlatten) zich af. Het in de jaren 2008 en 2010 t/m 2015 staan er woekerende onderwaterplanten (hoge submerse bedekking) en in 2006, 2009, 2016 en 2017 bloeien er algen in de zomer en ontbreken planten onder water. In jaren waar planten in het meer groeien is de algenconcentratie in de winter hoger dan in de zomer.
+
+```{r, KRW toestand, echo = FALSE, message = FALSE, out.width="100%"}
+plotEKRlijnToetsgebied(EKRset, detail = "hoofd") # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+```
+
+## Algen
+
+Zowel bloeien als de hoeveelheid algen zijn een maat voor ecologische kwaliteit. Een overmaat aan algen of bloeien van schadelijke (goud- of blauw)algen duiden een slechtere ecologische toestand dan lage concentratie algen en een grote diversiteit aan planten. In onderstaand figuur is te zien dat er ieder jaar algen bloeien in de Bovenste blik (3100-EAG-5) en dat deze sinds 2017 is toegenomen. Ook is te zien dat er minder algen in het zomerhalfjaar aanwezig zijn. Kranswieren groeien alleen in de zomer en deze remmen de groei van algen.
+Veertig morgen zijn wel meer blauwalgen in de zomer.
+
+```{r fytoplanktonEAG, echo = FALSE, message = FALSE, out.width="100%"}
+CHFL <- wq[wq$fewsparameter == "CHLFA", ]
+plotchlfa_lijn(CHFL) # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+CHFLB <- wq[wq$fewsparameter == "FLUOBLAU", ]
+plotchlfa_lijn(CHFLB) # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+
+```
+```{r fytoplanktonsamenstellingEAG, echo = FALSE, message = FALSE, out.width="100%"}
+fyt <- hybi[hybi$fewsparameternaam %in% c("Fytoplankton (uitgedrukt in waarnemingen/ml)", "Fytoplankton (uitgedrukt in cellen/ml)"),]#
+plotfytpl(fyt[fyt$locatie.EAG == '3100-EAG-5',])
+# waarom worden jaren niet goed weeregegeven bij facet EAG
+```
+
+## Waterplanten
+In figuur \@ref(fig:macrofytenperEAG) is te zien dat de kwaliteit van vegetatie verschilt per EAG. EAG 1 en EAG 5 zijn duidelijk minder goed ontwikkeld. Hier staan minder soorten planten en minder onderwaterplanten, wat zich uit in lage scores op de KRW maatlat, deelmaatlatten en indicator omdat er meer algen zijn en de belasting hoog is. Belangrijke bronnen zitten ook precies hier: de inlaat van gedefosfateerd water en afvoer van water uit de Meerlanden.
+```{r macrofytenperEAG, fig.cap = 'Fractieverdeling van de EKR-maatlatscores voor de verschillende meetpunten ingedeeld in scoreklassen en weergegeven per deelmaatlat.',echo = FALSE, message = FALSE, out.width="100%"}
+MCFT <- EKRset[EKRset$Waardebepalingsmethode.code == "other:Aquo-kit;Bio-toetsing;KRWmaatlat2012 - Ov. waterflora", ]
+plotFractiePerMaatlatPerEAG(MCFT) # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+```
+
+Afbeelding \@ref(fig:macrofytensoortenEAG) toont het percentage van het totale aantal locaties waar submerse soorten zijn waargenomen per jaar. Te zien is dat de biodiversititeit hoog is; Zowel het gemiddeld aantal soorten per meetpunt (3-6) als het totale aantal soorten per EAG (11-16) zijn hoog in de deelgebieden die boven het spoor liggen. In de Bovenste Blik is de biodiversiteit lager; Gamma = 4-11, alfa = 1-4. Verder is te zien dat de soortensamenstelling per jaar en per deelgebied kan verschillen. 
+
+```{r macrofytensoortenEAG, fig.cap = 'Overzicht van de waargenomen submerse macrofyten, ingedeeld per jaar. Op de x as staat het percentage van de meetpunten waarin de soort is waargenomen. De kleuren tonen de deelgebieden waarin de soorten voorkomen. De soortenlijst is gesorteerd van een hoge naar een lage gemiddelde (jaren en deelgebieden) bedekking per soort', echo = FALSE, message = FALSE, out.width="100%"}
+plotmcftsrt(hybi[grep('^3100', hybi$locatie.EAG),])
+```
+
+In afbeelding \@ref(fig:macrofytenkranswierenfoteinkruiden) zijn de percentages van het totale aantal locaties waar kranswieren en fonteinkruiden zijn waargenomen per jaar weergegeven. Deze soorten vormen de kwalificerende habitattypen kranswierwateren (H3140) en krabbenscheervegetaties (H3150) voor het Natura2000 beheerplan. Zowel de bedekking als het aantal kwalificerende soorten blijft stabiel tussen 2004 en 2017. Dit is een vereiste in het beheerplan.
+```{r macrofytenkranswierenfoteinkruiden, fig.cap = 'Overzicht van de waargenomen kranswieren en fonteinkruiden, ingedeeld per jaar. Op de y as staat het percentage van de meetpunten waarin de soort is waargenomen. De kleuren tonen verschillende soorten.', echo = FALSE, message = FALSE, out.width="100%"}
+plotmcftchara(hybi[grep('^3100', hybi$locatie.EAG),])
+plotmcftftn(hybi[grep('^3100', hybi$locatie.EAG),])
+```
+
+## Macrofauna en vis
+In figuur \@ref(fig:macrofauna) is te zien dat de kwaliteit van macrofauna overal voldoet, alleen in de Bovenste Blik is duidelijk minder goed ontwikkeld. Hier staan minder soorten planten en minder onderwaterplanten, wat zich ook uit in lage scores op de KRW maatlatvan macrofauna. 
+```{r macrofauna, fig.cap = 'Fractieverdeling van de EKR-maatlatscores voor de verschillende meetpunten ingedeeld in scoreklassen en weergegeven per deelmaatlat.',echo = FALSE, message = FALSE, out.width="100%"}
+mafa <- EKRset[EKRset$Waardebepalingsmethode.code == "other:Aquo-kit;Bio-toetsing;KRWmaatlat2012 - Macrofauna", ]
+plotFractiePerMaatlatPerEAG(mafa) # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+```
+
+Afbeelding \@ref(fig:vis) toont het percentage van het totale aantal locaties waar submerse soorten zijn waargenomen per jaar. In 2008 heeft de vis die nabij Stadzigt en in de Bovenste Blik is gevangen een groot aandeel in de totale visbiomassa van het Naardermeer. In de Bovenste Blik wordt dat jaar veel grote brasem gevangen. Na dat jaar neemt de totale brasembiomassa af. In 2013 zien de biomassa verhoudingen er gavarieerder uit. Er wordt relatief meer blankvoorn, snoek, paling en zeelt gevangen. Deze soorten dragen bij aan een positieve score op de KRW maatlat vis. De kwaliteit van de visstand in het Naardermeer is toegenomen sinds 2008.
+```{r vis, fig.cap = 'Overzicht van de waargenomen submerse macrofyten, ingedeeld per jaar. Op de x as staat het percentage van de meetpunten waarin de soort is waargenomen. De kleuren tonen de deelgebieden waarin de soorten voorkomen. De soortenlijst is gesorteerd van een hoge naar een lage gemiddelde (jaren en deelgebieden) bedekking per soort', echo = FALSE, message = FALSE, out.width="100%"}
+plotvis(hybi)
+```
+
+
+Verklaring toestand hydrobiologie; Ecologische sleutelfactoren 
+================================================================================
+### Productiviteit
+#### Water en stofstromen
+Voor de berekening van de externe nutriëntenbelasting is een water- en stoffenbalans opgesteld. 
+Er zijn waterbalansen gemaakt voor 3 deelgebieden en het gehele Naardermeer. 
+
+fig: indeling in deelgebieden: leaflet met eags 1, 2, 3, 10 samen, 4, 5
+
+Er zijn 4 verschillende scenario’s doorgerekend:
+1 huidige situatie
+2 situatie met flexibel peil (minder inlaatwater nodig, minder grote flux vanuit percelen)
+3 situatie met peilopzet bufferzone (meer kwel, minder wegzijging, grotere flux vanuit percelen)
+4 situatie met flexibel peil en peilopzet bufferzone (meer kwel, minder wegzijging, minder inlaatwater, flux percelen?)
+
+fig: fractieverdelingen en P belastingen per deelgebied
+
+De belangrijkste verschillen van de scenario’s zijn het peil (van vast naar flexibel in alle toekomstscenario’s), de hoeveelheid kwel (als gevolg van de peilverandering) en daarmee de resulterende verblijftijden in de plassen. De concentratie van het perceelswater is niet aangepast. In werkelijkheid wordt deze ook beinvloed door veranderende grondwaterstanden; bij een verlaging van het peil bestaat er een risico op hogere concentraties mineraal fosfor en stikstof door verhoogde veenoxidatie en bij het verhogen van het peil een risico op verhoogde P-mobilisatie. De processen die hieraan ten grondslag liggen staan beschreven in: flexibel peil. Aangezien het peil slechts gedurende korte momenten in het jaar verhoogd en oppervlaktewater en grondwater meer met elkaar meebewegen bij het verruimen van het toegestane peil, worden geen grote effecten op perceelsconcentraties verwacht.
+
+Het Naardermeer is laagbelast met voedingstoffen. 
+P via defos en inlaatwater, via percelen (doogte heeft invloed). Wanneer het peil in het Naardermeer wordt verhoogd bestaat het risico op een verhoogde uitspoeling van P. P rijke percelen in flexpeil? Geen groot effect verwacht, veel open water. Nattere percelen beter voor veenoxidatie vooral niet omlaag en inlaten in droge perioden. Maatregelen peilverhoging in meer en bufferzone heeft hier een positief effect op. 
+
+fig: P belasting verdeling in bronnen 
+
+#### PC lake
+PClake kritische grenzen irt verblijftijd. Verblijftijd sterk bepaald door indeling in deelgebieden. Meer dan door scenarios 2 t/m 4.
+De variatie in debiet (en daarmee verblijftijd) en P-belasting resulteert voor de verschillende scenario’s in verschillende verhoudingen tussen de externe P-belasting en kritische P-belasting, zoals weergegeven in afbeelding 3.13. Hierin zijn de kritische grenzen (uitgerekend met het metamodel van PCLake) van ‘helder naar troebel’ en van ‘troebel naar helder’ weergegeven voor een diepte van 0,9 en 1,2 m in de verschillende scenario’s.
+
+fig: P vs kP per EAG in leaflet
+
+#### Nalevering waterbodem
+In 2017 zijn bodemmonsters van verschillende locaties in het Naardermeer geanalyseerd om inzicht te krijgen in 
+(a) de actuele nalevering 
+(b) de mogelijkheid voor nalevering wanneer de bodem verder afbreekt.
+Op de totale P-beschikbaarheid in de waterbodem wordt ingegaan bij ESF3 (productiviteit van de bodem). In deze paragraaf wordt bepaald of interne P-mobilisatie in potentie een probleem kan vormen. Hierbij dient nadrukkelijk vermeld te worden dat de hieronder ingeschatte interne P-belastingen niet opgeteld mogen worden bij de eerder uitgerekende externe P-belastingen. Een gedeelte van de interne P-belasting is namelijk een na-ijl effect van eerdere externe P-belastingen. Daarnaast wordt er in PCLake en PCDitch rekening gehouden met een interne P-belasting onder evenwichtscondities: bij het bepalen van de kritische P-belastingen wordt dus rekening gehouden met de waterbodem. Het optellen van de interne en externe P-belasting leidt dus tot (grote) dubbeltellingen. De ingeschatte onderstaande belastingen worden dan ook alleen bepaald om in te schatten of interne P-belasting een potentieel probleem kan vormen voor het Naardermeer. 
+
+```{r, nalevering waterbodem, message = FALSE, echo = FALSE, out.width="100%"}
+bod <- bod[bod$locatie.EAG %in%c('3100-EAG-1','3100-EAG-2','3100-EAG-3','3100-EAG-4','3100-EAG-5','3100-EAG-9'), ]
+plotbod(bod)
+
+# legenda toevogen en eenheid op y as
+```
+
+#### Maatregelen productiviteit
+Effect verhoging peil op verblijftijd en kritische grens
+Effect meer inlaat en minder defos
+Effect baggeren in grote meer levert de bodem behoorlijk na.
+
+### Lichtklimaat
+
+fig: kaart met % licht op waterbodem
+
+### Voedselrijkdom waterbodem
+
+fig: totaal p waterbodem grafiek
+
+### Habitatgeschiktheid
+De aanvoer van basen is in laagveengebieden belangrijk voor de vorming en behoud van goed ontwikkelde verlandingsvegetaties zoals trilvenen. Kwel en perceelswater is in potentie een belangrijke bron van basen, omdat hier calcium- en bicarbonaatrijk water opkwelt.
+
+koolstofbeschikbaarheid is limiterend in Groote meer.
+```{r, bicarbonaat EAG, echo = FALSE, message = FALSE, out.width="100%"}
+hco3 <- wq[wq$fewsparameter %in% c("HCO3-1")&wq$locatiecode %in% c('NAP020','NAP010'), ]
+ph <- wq[wq$fewsparameter %in% c("PH"), ]
+plotchlfa_lijn(hco3)  # gepresenteerd per gafident, plotsPerElementHoofdPerGebiedPerEAG
+plotchlfa_lijn(ph)
+```
+
+Conclusie
+=======================================================================
+Toestand is goed, behalve bovenste Blik.
+Belasting < kritische belasting
+Bodem is geen probleem, alleen in de Bovenste Blik potentieel toxisch
+Koolstoflimitatie in Noorden.
+
+Maatregelen afkoppelen en baggeren zinvol.
+Aangepast peilbeheer klein risico op p vs kP: verhoging P uitspoeling, kritische grenzen veranderen niet.
+Dynamiek peilbeheer van groot belang voor uitspoeling. Liever zo min mogelijk het peil omlaag halen door te malen.
+
+### Discussiepunten
+
+
+
+Bijlagen
+=======================================================================
+### PClake
+PClake en PCDitch zijn ecologische voedselwebmodellen waarmee respectievelijk Nederlandse ondiepe meren en sloten kunnen worden gemodelleerd (Janse 2005). Met behulp van deze modellen kan de kritische P-belasting worden afgeleid, de grens waarbij een omslag optreedt van helder naar troebel of andersom (STOWA 2008). De metamodellen zijn vereenvoudigde varianten waarmee met slechts enkele parameters een indicatie van de kritische grens kan worden verkregen (PBL 2018).
+De ge-update waterbalansen vormen de input voor het metamodel. De kritische grens wordt in de analyse vergeleken met de P-belastingen, waarmee duidelijk wordt of de P-belastingen een probleem vormen voor de ecologische toestand. De kritische grens is afgeleid voor een diepte van 0,9 en 1,2 m, omdat de exacte diepte niet goed bekend is terwijl deze factor vaak veel invloed heeft op de kritische belastingen.
+
+gemiddelden Q, Nload
+reeksen op dagbasis Pload uit stoffenbalans
+fetch obv fetchtool HHNK
+nalevering
+vis obv relatie visbiomassa en P influx
+
+### Water en stoffenbalans
+De waterbalans in Excel geeft met een relatief eenvoudige benadering van de hydrologie een goede indruk van de waterstromen. Elk balansgebied is onderverdeeld in 2 bakjes: 1) open water en 2) percelen. Het watertekort- en overschot in de percelen wordt bepaald in het bakje ‘percelen’ op basis van kwel en wegzijging enerzijds en neerslag en verdamping anderzijds. Het watertekort en -overschot wordt bepaald in het bakje open water op basis van 1) kwel en wegzijging, 2) neerslag en verdamping en 3) drainage en intrek.
+Als het peil in het bakje boven het evenwichtspeil (gelijk aan streefpeil) uitkomt, gaat er water van de percelen naar het open water via drainage/uitspoeling. Andersom gaat er water van het open water naar de percelen door intrek als het peil in het bakje onder het evenwichtspeil uitkomt. Het peil in het bakje ‘percelen’ wordt dus berekend onafhankelijk van het peil in het open water. Als het peil in het bakje open water boven het streefpeil + marge uitkomt wordt er water afgevoerd via het gemaal. Andersom wordt er water aangevoerd als het peil in het bakje onder het streefpeil + marge uitkomt.
+tabel met uitgangspunten
+- oppervlakken gegenereerd obv BGT
+- gemiddelde waterdiepte gebruikt
+- gebiedsschematisatie van geo --> blokken; hier staan de relaties tussen waterfluxen en meetlocaties waterkwaliteit 
+
+### BaggerNut tool
+Voor het bepalen van de potentiële interne P-mobilisatie is gebruik gemaakt van de BaggerNUT-tool (STOWA 2012). In deze tool kan de interne P-mobilisatie op verschillende manieren worden bepaald. Hier is gebruik gemaakt van 2 methoden: (a) totaal (Fe-S)/P-ratio van het versgewicht van waterbodems en (b) de totaal P-concentraties in het bodemvocht. De (Fe-S)/P-ratio (op basis van versgewichten) is gebaseerd op totalen voorraden in de bodem en is daarmee een indicator voor de potentiële P-mobilisatie. De metingen van het porievochtgehalte geven een weergave van de feitelijke nalevering ten tijde van de meting.
+De (Fe-S)/P-ratio geeft informatie over de potentiële interne P-mobilisatie, omdat P aan ijzer (Fe) bindt waardoor P vastgelegd kan worden in de waterbodem (waardoor de P niet in de waterlaag zit). Doordat zwavel (S) een sterkere bindingscapaciteit met Fe heeft dan P, kan bij hoge S-concentraties echter toch P vrijkomen (ook als er redelijk veel Fe aanwezig is). De verhouding tussen Fe, S en P geeft dus een indicatie van de potentiële interne P-mobilisatie.
+
+Referenties
+=======================================================================
+Evers, C.H.M., Van den Broek, A.J.M., Buskens, R., van Leerdam, A., Knoben, R.A.E. & van Herpen, F.C.J. (2012) Omschrijving MEP en maatlatten voor sloten en kanalen voor de Kaderrichtlijn Water 2015-2021. Rapportnr. 2012-34, STOWA, Amersfoort.
+Janse, J.H. (2005) Model studies on the eutrophication of shallow lakes and ditches. PhD-thesis, Wageingen Universiteit, Wageningen.
+Schep, S.A. & Verbeek, S.K. (2018) Ecologische sleutelfactoren. Landschap, 2018/1: 24-33.
+STOWA (2012) BAGGERNUT, Maatregelen baggeren en nutriënten, overkoepelend rapport. Rapportnr. 2012-40, STOWA, Amersfoort.
+STOWA (2014) Ecologische sleutelfactoren. Begrip van het watersysteem als basis voor beslissingen. Rapportnr. 2014-19, STOWA, Amersfoort.
+STOWA (2015) Ecologische sleutelfactoren voor het herstel van onderwatervegetatie; Toepassing van de ecologische sleutelfactoren 1, 2 en 3 in de praktijk. Rapportnr. 2015-17, STOWA, Amersfoort.

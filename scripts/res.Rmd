@@ -1,0 +1,23 @@
+---
+title: "Untitled"
+author: "Laura Moria"
+date: "27 juni 2018"
+output: html_document
+---
+
+
+collumn {.tabset}
+-----------------------------------------------------------------------
+### goede toestanden verbeeld
+```{r, out.width = "500px"}
+knitr::include_graphics("pics/Toestand-2_soortenrijk landelijk ondiep meer zonder algen rijke oever aanpas-3.jpg")
+knitr::include_graphics("pics/Toestand-1_soortenrijke landelijke sloot soortenrijke oever helder water drinkbak aanpas-3 .jpg")
+knitr::include_graphics("pics/19-Soortenrijke-stedelijke-sloot.jpg")
+```
+
+### slechte toestanden verbeeld
+```{r, out.width = "500px"}
+knitr::include_graphics("pics/Toestand-2C_soortenarm landelijk ondiep meer met (drijvende blauw)algen rijke oever-3.jpg")
+knitr::include_graphics("pics/Toestand-5_soortenarme landelijk sloot zonder onderwaterplanten karpers.jpg")
+knitr::include_graphics("pics/18-Soortenarme-stedelijke-sloot.jpg")
+```
